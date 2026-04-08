@@ -769,7 +769,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '8px',
+    gap: '6px',
     paddingTop: '2px',
   },
   revealActionsRowGuest: {
