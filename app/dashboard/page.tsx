@@ -354,8 +354,7 @@ export default function DashboardPage() {
                   }}
                 >
                   {mainBookings.map((booking) => {
-                    const desk = booking.desk;
-                    const meetingRoom = isMeetingRoom(desk);
+                    const meetingRoom = isMeetingRoom(booking.desk);
                     const isExpanded = expandedMainCards[booking.id] ?? false;
 
                     return (
@@ -374,12 +373,11 @@ export default function DashboardPage() {
                           onClick={() => toggleMainCard(booking.id)}
                           aria-expanded={isExpanded}
                         >
-                          <div style={styles.slimCardTopRow}>
-                            <span style={styles.slimCardDate}>
+                          <div style={styles.compactCardBodyLeft}>
+                            <span style={styles.compactCardDateTop}>
                               {formatDate(booking.booking_date)}
                             </span>
-
-                            <span style={styles.slimCardDesk}>
+                            <span style={styles.compactCardDeskBottom}>
                               {getDeskLabel(booking)}
                             </span>
                           </div>
@@ -419,6 +417,7 @@ export default function DashboardPage() {
 
               {groupedGuestBookings.map((group) => {
                 const isExpanded = expandedGuestGroups[group.date] ?? false;
+                const selectedDesks = group.items.map(getDeskLabel).join(', ');
 
                 return (
                   <div key={group.date} style={styles.guestGroupCard}>
@@ -431,6 +430,12 @@ export default function DashboardPage() {
                         {group.items.length}{' '}
                         {group.items.length === 1 ? 'ospite' : 'ospiti'}
                       </span>
+                    </div>
+
+                    <div style={styles.guestSummaryInfo}>
+                      <p style={styles.guestSummaryText}>
+                        <strong>Postazioni selezionate:</strong> {selectedDesks}
+                      </p>
                     </div>
 
                     <div style={styles.guestSummaryActions}>
@@ -461,7 +466,7 @@ export default function DashboardPage() {
                             : 'repeat(4, minmax(0, 1fr))',
                         }}
                       >
-                        {group.items.map((booking) => {
+                        {group.items.map((booking, index) => {
                           const meetingRoom = isMeetingRoom(booking.desk);
                           const cardExpanded =
                             expandedGuestCards[booking.id] ?? false;
@@ -482,12 +487,11 @@ export default function DashboardPage() {
                                 onClick={() => toggleGuestCard(booking.id)}
                                 aria-expanded={cardExpanded}
                               >
-                                <div style={styles.slimCardTopRow}>
-                                  <span style={styles.slimCardDate}>
-                                    {formatDate(booking.booking_date)}
+                                <div style={styles.compactCardBodyLeft}>
+                                  <span style={styles.compactGuestTitle}>
+                                    {`Ospite ${index + 1}`}
                                   </span>
-
-                                  <span style={styles.slimCardDesk}>
+                                  <span style={styles.compactCardDeskBottom}>
                                     {getDeskLabel(booking)}
                                   </span>
                                 </div>
@@ -671,17 +675,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   mainBookingsGrid: {
     display: 'grid',
-    gap: '12px',
+    gap: '10px',
     width: '100%',
   },
   slimBookingCard: {
     borderRadius: '12px',
-    padding: '10px 12px',
+    padding: '8px 10px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '6px',
     boxSizing: 'border-box',
-    minHeight: '72px',
+    minHeight: '64px',
     width: '100%',
   },
   cardClickArea: {
@@ -693,27 +697,37 @@ const styles: { [key: string]: React.CSSProperties } = {
     textAlign: 'left',
     cursor: 'pointer',
   },
-  slimCardTopRow: {
+  compactCardBodyLeft: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '10px',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: '4px',
     minWidth: 0,
+    width: '100%',
   },
-  slimCardDate: {
-    fontSize: 'clamp(12px, 3.5vw, 14px)',
+  compactCardDateTop: {
+    fontSize: 'clamp(11px, 3.2vw, 13px)',
     fontWeight: 700,
     color: '#334155',
-    lineHeight: 1.2,
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
+    lineHeight: 1.15,
+    textAlign: 'left',
+    wordBreak: 'break-word',
   },
-  slimCardDesk: {
-    fontSize: 'clamp(12px, 3.8vw, 14px)',
+  compactCardDeskBottom: {
+    fontSize: 'clamp(11px, 3.4vw, 13px)',
     fontWeight: 600,
     color: '#0f172a',
-    lineHeight: 1.3,
-    textAlign: 'right',
+    lineHeight: 1.2,
+    textAlign: 'left',
+    wordBreak: 'break-word',
+  },
+  compactGuestTitle: {
+    fontSize: 'clamp(11px, 3.2vw, 13px)',
+    fontWeight: 700,
+    color: '#334155',
+    lineHeight: 1.15,
+    textAlign: 'left',
     wordBreak: 'break-word',
   },
   revealActionsRow: {
@@ -784,6 +798,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.3,
     textAlign: 'right',
     marginLeft: 'auto',
+  },
+  guestSummaryInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  guestSummaryText: {
+    margin: 0,
+    fontSize: '14px',
+    color: '#475569',
+    lineHeight: 1.4,
+    wordBreak: 'break-word',
   },
   guestSummaryActions: {
     display: 'flex',
