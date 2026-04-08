@@ -1,11 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-
 import { useEffect, useMemo, useState } from 'react';
-
 import Link from 'next/link';
-
 import { supabase } from '../../lib/supabase';
 
 type Booking = {
@@ -23,45 +20,33 @@ type Booking = {
 
 type GroupedGuestBookings = {
   date: string;
-
   items: Booking[];
 };
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
-
   const [fullName, setFullName] = useState('');
-
   const [bookings, setBookings] = useState<Booking[]>([]);
-
   const [message, setMessage] = useState('');
-
   const [loading, setLoading] = useState(true);
-
   const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getUser();
-
       const currentUser = data.user;
 
       if (!currentUser) {
         window.location.href = '/';
-
         return;
       }
 
       setUser(currentUser);
 
       const { data: profileData } = await supabase
-
         .from('profiles')
-
         .select('full_name')
-
         .eq('id', currentUser.id)
-
         .single();
 
       if (profileData?.full_name) {
@@ -69,7 +54,6 @@ export default function DashboardPage() {
       }
 
       await loadBookings(currentUser.id);
-
       setLoading(false);
     };
 
@@ -80,39 +64,21 @@ export default function DashboardPage() {
     const today = new Date().toISOString().split('T')[0];
 
     const { data, error } = await supabase
-
       .from('bookings')
-
-      .select(
-        `
-
+      .select(`
         id,
-
         booking_date,
-
         desk_id,
-
         is_guest,
-
         guest_label,
-
         occupant_name,
-
         desks (
-
           desk_number,
-
           label
-
         )
-
-      `
-      )
-
+      `)
       .eq('user_id', userId)
-
       .gte('booking_date', today)
-
       .order('booking_date', { ascending: true });
 
     if (error) {
@@ -133,7 +99,6 @@ export default function DashboardPage() {
 
     if (error) {
       setMessage('Errore durante la cancellazione.');
-
       return;
     }
 
@@ -147,7 +112,6 @@ export default function DashboardPage() {
 
     if (error) {
       setMessage('Errore durante il logout.');
-
       return;
     }
 
@@ -160,13 +124,11 @@ export default function DashboardPage() {
 
   const mainBookings = useMemo(
     () => bookings.filter((booking) => !booking.is_guest),
-
     [bookings]
   );
 
   const guestBookings = useMemo(
     () => bookings.filter((booking) => booking.is_guest),
-
     [bookings]
   );
 
@@ -175,26 +137,19 @@ export default function DashboardPage() {
 
     guestBookings.forEach((booking) => {
       const current = map.get(booking.booking_date) || [];
-
       current.push(booking);
-
       map.set(booking.booking_date, current);
     });
 
     return Array.from(map.entries())
-
       .map(([date, items]) => ({
         date,
-
         items: items.sort((a, b) => {
           const aLabel = a.guest_label || '';
-
           const bLabel = b.guest_label || '';
-
           return aLabel.localeCompare(bLabel, undefined, { numeric: true });
         }),
       }))
-
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [guestBookings]);
 
@@ -250,7 +205,6 @@ export default function DashboardPage() {
                     key={booking.id}
                     style={{
                       ...styles.bookingCard,
-
                       ...(isMeetingRoom
                         ? styles.meetingBookingCard
                         : styles.normalBookingCard),
@@ -317,7 +271,6 @@ export default function DashboardPage() {
                           key={booking.id}
                           style={{
                             ...styles.guestItem,
-
                             ...(isMeetingRoom
                               ? styles.meetingGuestItem
                               : styles.normalGuestItem),
@@ -395,193 +348,135 @@ export default function DashboardPage() {
 const styles: { [key: string]: React.CSSProperties } = {
   page: {
     minHeight: '100vh',
-
     display: 'flex',
-
     justifyContent: 'center',
-
     alignItems: 'center',
-
     padding: '20px',
-
     backgroundColor: '#f4f6f8',
   },
 
   card: {
     width: '100%',
-
     maxWidth: '620px',
-
     backgroundColor: '#ffffff',
-
     borderRadius: '16px',
-
     padding: '24px',
-
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '18px',
   },
 
   title: {
     textAlign: 'center',
-
     fontSize: '24px',
-
     margin: 0,
   },
 
   welcomeText: {
     margin: 0,
-
     textAlign: 'center',
-
     color: '#555',
-
     fontSize: '16px',
-
     wordBreak: 'break-word',
   },
 
   topButtonsRow: {
     display: 'flex',
-
     gap: '10px',
   },
 
   logoutButton: {
     flex: 1,
-
     padding: '8px',
-
     borderRadius: '10px',
-
     border: '1px solid #d32f2f',
-
     backgroundColor: '#fff',
-
     color: '#d32f2f',
-
     fontSize: '13px',
-
     cursor: 'pointer',
   },
 
   mapButton: {
     flex: 1,
-
     padding: '8px',
-
     borderRadius: '10px',
-
     border: '1px solid #0070f3',
-
     backgroundColor: '#fff',
-
     color: '#0070f3',
-
     fontSize: '13px',
-
     cursor: 'pointer',
   },
 
   sectionHeader: {
     display: 'flex',
-
     justifyContent: 'center',
   },
 
   subtitle: {
     fontSize: '20px',
-
     margin: 0,
   },
 
   sectionContainer: {
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '12px',
   },
 
   sectionTitle: {
     margin: 0,
-
     fontSize: '16px',
   },
 
   text: {
     textAlign: 'center',
-
     margin: 0,
   },
 
   emptyState: {
     border: '1px dashed #cfd6dd',
-
     borderRadius: '12px',
-
     padding: '18px',
-
     backgroundColor: '#fafbfd',
   },
 
   bookingCard: {
     borderRadius: '14px',
-
     padding: '16px',
-
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '12px',
   },
 
   normalBookingCard: {
     backgroundColor: '#eef4ff',
-
     border: '1px solid #cfe0ff',
   },
 
   meetingBookingCard: {
     backgroundColor: '#fff4e5',
-
     border: '1px solid #f2c078',
   },
 
   bookingTop: {
     display: 'flex',
-
     justifyContent: 'space-between',
-
     alignItems: 'center',
-
     gap: '10px',
-
     flexWrap: 'wrap',
   },
 
   bookingBadge: {
     fontSize: '12px',
-
     fontWeight: 700,
-
     backgroundColor: '#ffffff',
-
     padding: '6px 10px',
-
     borderRadius: '999px',
   },
 
   bookingDate: {
     fontSize: '14px',
-
     color: '#555',
   },
 
@@ -591,265 +486,179 @@ const styles: { [key: string]: React.CSSProperties } = {
 
   actions: {
     display: 'flex',
-
     gap: '10px',
-
     flexWrap: 'wrap',
   },
 
   modifyButton: {
     flex: 1,
-
     minWidth: '120px',
-
     backgroundColor: '#faad14',
-
     color: '#fff',
-
     padding: '10px 12px',
-
     borderRadius: '10px',
-
     textDecoration: 'none',
-
     textAlign: 'center',
   },
 
   deleteButton: {
     flex: 1,
-
     minWidth: '120px',
-
     backgroundColor: '#ff4d4f',
-
     color: '#fff',
-
     border: 'none',
-
     padding: '10px 12px',
-
     borderRadius: '10px',
-
     cursor: 'pointer',
   },
 
   guestGroupCard: {
     borderRadius: '14px',
-
     padding: '16px',
-
     backgroundColor: '#f8fafc',
-
     border: '1px solid #d9e2ec',
-
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '12px',
   },
 
   guestGroupHeader: {
     display: 'flex',
-
     justifyContent: 'space-between',
-
     alignItems: 'center',
-
     gap: '10px',
-
     flexWrap: 'wrap',
   },
 
   guestGroupBadge: {
     fontSize: '12px',
-
     fontWeight: 700,
-
     backgroundColor: '#ffffff',
-
     padding: '6px 10px',
-
     borderRadius: '999px',
   },
 
   guestList: {
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '10px',
   },
 
   guestItem: {
     borderRadius: '12px',
-
     padding: '12px',
-
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '8px',
   },
 
   normalGuestItem: {
     backgroundColor: '#eef4ff',
-
     border: '1px solid #cfe0ff',
   },
 
   meetingGuestItem: {
     backgroundColor: '#fff4e5',
-
     border: '1px solid #f2c078',
   },
 
   guestItemTop: {
     display: 'flex',
-
     justifyContent: 'space-between',
-
     gap: '10px',
-
     flexWrap: 'wrap',
-
     alignItems: 'center',
   },
 
   guestOccupantName: {
     fontSize: '13px',
-
     color: '#555',
   },
 
   guestItemMiddle: {
     fontSize: '15px',
-
     fontWeight: 600,
   },
 
   guestItemActions: {
     display: 'flex',
-
     gap: '10px',
   },
 
   primaryButton: {
     marginTop: '8px',
-
     padding: '12px',
-
     borderRadius: '10px',
-
     backgroundColor: '#0070f3',
-
     color: '#fff',
-
     textAlign: 'center',
-
     textDecoration: 'none',
   },
 
   message: {
     color: '#c62828',
-
     textAlign: 'center',
-
     margin: 0,
   },
 
   modalOverlay: {
     position: 'fixed',
-
     inset: 0,
-
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
-
     display: 'flex',
-
     justifyContent: 'center',
-
     alignItems: 'center',
-
     padding: '20px',
-
     zIndex: 1000,
   },
 
   modalContent: {
     width: '100%',
-
     maxWidth: '900px',
-
     backgroundColor: '#fff',
-
     borderRadius: '16px',
-
     padding: '20px',
-
     boxShadow: '0 10px 30px rgba(0,0,0,0.18)',
-
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '16px',
   },
 
   modalHeader: {
     display: 'flex',
-
     justifyContent: 'space-between',
-
     alignItems: 'center',
-
     gap: '10px',
   },
 
   modalTitle: {
     margin: 0,
-
     fontSize: '20px',
   },
 
   closeButton: {
     width: '36px',
-
     height: '36px',
-
     borderRadius: '50%',
-
     border: '1px solid #d0d7de',
-
     backgroundColor: '#fff',
-
     color: '#333',
-
     fontSize: '24px',
-
     lineHeight: 1,
-
     cursor: 'pointer',
   },
 
   modalImageWrapper: {
     width: '100%',
-
     overflow: 'hidden',
-
     borderRadius: '12px',
-
     border: '1px solid #e2e8f0',
-
     backgroundColor: '#fff',
   },
 
   modalImage: {
     width: '100%',
-
     height: 'auto',
-
     display: 'block',
   },
 };
