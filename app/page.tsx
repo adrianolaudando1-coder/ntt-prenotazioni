@@ -69,7 +69,7 @@ export default function Home() {
         </div>
         
         <h1 style={styles.title}> Salerno </h1>
-        <h1 style={styles.title}> Prenotazione postazioni </h1>
+        <h4 style={styles.title}> Prenotazione postazioni </h4>
 
         <div style={styles.formGroup}>
           <label style={styles.label}>Email</label>
