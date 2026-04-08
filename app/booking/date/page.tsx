@@ -309,7 +309,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     maxWidth: '100%',
     height: 'auto',
     display: 'block',
-
+  },
+  
+  logoWrapper: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
   message: {
     margin: 0,
     textAlign: 'center',
