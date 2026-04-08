@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import DeskMapPlaceholder from '../../../components/DeskMapPlaceholder';
+import CardLogo from '../../../components/CardLogo';
+
 
 type Desk = {
   id: number;
@@ -384,7 +386,12 @@ export default function BookingDeskPage() {
   return (
     <main style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.title}>NTT Salerno prenotazione postazioni</h1>
+        <div style={styles.logoWrapper}>
+          <img src="/logo.png" alt="Logo" style={styles.logo} />
+        </div>
+
+
+        <h1 style={styles.title}>Prenotazione postazioni</h1>
         <h2 style={styles.subtitle}>
           {isGuestFlow
             ? `Prenotazione ospiti (${guestCount})`
