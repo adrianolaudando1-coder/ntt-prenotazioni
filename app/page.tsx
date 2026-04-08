@@ -1,26 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
 import Link from 'next/link';
-
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
-
   const [email, setEmail] = useState('');
-
   const [password, setPassword] = useState('');
-
   const [message, setMessage] = useState('');
-
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data } = await supabase.auth.getUser();
-
       setUser(data.user);
     };
 
@@ -42,13 +35,11 @@ export default function Home() {
 
     if (!email || !password) {
       setMessage('Inserisci email e password.');
-
       return;
     }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
-
       password,
     });
 
@@ -61,7 +52,6 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-
     setMessage('Logout effettuato.');
   };
 
@@ -120,176 +110,145 @@ export default function Home() {
 
 const styles: { [key: string]: React.CSSProperties } = {
   page: {
-    minHeight: '100vh',
-
+    minHeight: '100dvh',
     display: 'flex',
-
     justifyContent: 'center',
-
     alignItems: 'center',
-
-    padding: '20px',
-
+    padding: 'clamp(12px, 4vw, 24px)',
     backgroundColor: '#f4f6f8',
+    boxSizing: 'border-box',
   },
 
   card: {
     width: '100%',
-
     maxWidth: '420px',
-
     backgroundColor: '#ffffff',
-
-    borderRadius: '16px',
-
-    padding: '24px',
-
+    borderRadius: 'clamp(14px, 4vw, 16px)',
+    padding: 'clamp(16px, 4.5vw, 24px)',
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-
     display: 'flex',
-
     flexDirection: 'column',
-
-    gap: '16px',
+    gap: 'clamp(12px, 3.5vw, 16px)',
+    boxSizing: 'border-box',
   },
 
   title: {
     margin: 0,
-
     textAlign: 'center',
-
-    fontSize: '24px',
-
+    fontSize: 'clamp(20px, 5.5vw, 24px)',
     lineHeight: 1.3,
+    wordBreak: 'break-word',
   },
 
   subtitle: {
     margin: 0,
-
     textAlign: 'center',
-
-    fontSize: '20px',
+    fontSize: 'clamp(17px, 4.8vw, 20px)',
+    lineHeight: 1.3,
   },
 
   text: {
     margin: 0,
-
     textAlign: 'center',
-
     wordBreak: 'break-word',
+    fontSize: 'clamp(14px, 4vw, 16px)',
+    lineHeight: 1.4,
   },
 
   formGroup: {
     display: 'flex',
-
     flexDirection: 'column',
-
     gap: '8px',
+    width: '100%',
   },
 
   label: {
-    fontSize: '14px',
-
+    fontSize: 'clamp(13px, 3.6vw, 14px)',
     fontWeight: 600,
+    lineHeight: 1.3,
   },
 
   input: {
     width: '100%',
-
-    padding: '12px',
-
+    minHeight: '48px',
+    padding: '12px 14px',
     borderRadius: '10px',
-
     border: '1px solid #cfd6dd',
-
     fontSize: '16px',
-
     boxSizing: 'border-box',
+    backgroundColor: '#fff',
+    appearance: 'none',
+    WebkitAppearance: 'none',
   },
 
   passwordWrapper: {
     display: 'flex',
-
     alignItems: 'center',
-
+    width: '100%',
+    minHeight: '48px',
     border: '1px solid #cfd6dd',
-
     borderRadius: '10px',
-
     overflow: 'hidden',
-
     backgroundColor: '#fff',
+    boxSizing: 'border-box',
   },
 
   passwordInput: {
     flex: 1,
-
-    padding: '12px',
-
+    minWidth: 0,
+    padding: '12px 14px',
     border: 'none',
-
     outline: 'none',
-
     fontSize: '16px',
+    backgroundColor: 'transparent',
+    boxSizing: 'border-box',
   },
 
   eyeButton: {
+    minWidth: '48px',
+    height: '48px',
     border: 'none',
-
     background: 'transparent',
-
     padding: '0 12px',
-
     cursor: 'pointer',
-
     fontSize: '18px',
+    boxSizing: 'border-box',
   },
 
   primaryButton: {
     width: '100%',
-
-    padding: '12px',
-
+    minHeight: '48px',
+    padding: '12px 14px',
     borderRadius: '10px',
-
     border: 'none',
-
     backgroundColor: '#0070f3',
-
     color: '#fff',
-
     fontSize: '16px',
-
+    fontWeight: 600,
     cursor: 'pointer',
+    boxSizing: 'border-box',
   },
 
   secondaryButton: {
     width: '100%',
-
-    padding: '12px',
-
+    minHeight: '48px',
+    padding: '12px 14px',
     borderRadius: '10px',
-
     border: '1px solid #0070f3',
-
     color: '#0070f3',
-
     fontSize: '16px',
-
+    fontWeight: 600,
     textAlign: 'center',
-
     textDecoration: 'none',
-
     boxSizing: 'border-box',
   },
 
   message: {
     margin: 0,
-
     textAlign: 'center',
-
-    fontSize: '14px',
-
+    fontSize: 'clamp(13px, 3.8vw, 14px)',
     color: '#c62828',
+    lineHeight: 1.4,
+    wordBreak: 'break-word',
   },
 };
