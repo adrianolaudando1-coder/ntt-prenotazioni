@@ -599,7 +599,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
   },
   smallLogo: {
-    width: '50%',
+    width: '200px',
     maxWidth: '100%',
     height: 'auto',
     display: 'block',
