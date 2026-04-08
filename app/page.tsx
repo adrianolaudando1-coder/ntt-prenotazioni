@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
+import CardLogo from '../components/CardLogo';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -63,7 +64,11 @@ export default function Home() {
   return (
     <main style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.title}>NTT Salerno prenotazione postazioni</h1>
+        <div style={styles.logoWrapper}>
+          <img src="/logo.png" alt="Logo" style={styles.logo} />
+        </div>
+        
+        <h1 style={styles.title}> Sede Salerno prenotazione postazioni</h1>
 
         <div style={styles.formGroup}>
           <label style={styles.label}>Email</label>
