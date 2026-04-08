@@ -33,7 +33,6 @@ type RawBooking = {
 type GroupedGuestBookings = {
   date: string;
   items: Booking[];
-  desksSummary: string;
 };
 
 export default function DashboardPage() {
@@ -43,6 +42,9 @@ export default function DashboardPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [showMap, setShowMap] = useState(false);
+  const [expandedMainBookingId, setExpandedMainBookingId] = useState<number | null>(
+    null
+  );
   const [expandedGuestGroups, setExpandedGuestGroups] = useState<
     Record<string, boolean>
   >({});
@@ -137,6 +139,34 @@ export default function DashboardPage() {
     }
 
     setBookings((prev) => prev.filter((b) => b.id !== id));
+
+    if (expandedMainBookingId === id) {
+      setExpandedMainBookingId(null);
+    }
+  };
+
+  const handleDeleteGuestGroup = async (group: GroupedGuestBookings) => {
+    const confirmed = window.confirm(
+      'Vuoi davvero cancellare tutte le prenotazioni di questo gruppo ospiti?'
+    );
+
+    if (!confirmed) return;
+
+    const ids = group.items.map((item) => item.id);
+
+    const { error } = await supabase.from('bookings').delete().in('id', ids);
+
+    if (error) {
+      setMessage('Errore durante la cancellazione del gruppo ospiti.');
+      return;
+    }
+
+    setBookings((prev) => prev.filter((b) => !ids.includes(b.id)));
+
+    setExpandedGuestGroups((prev) => ({
+      ...prev,
+      [group.date]: false,
+    }));
   };
 
   const handleLogout = async () => {
@@ -152,18 +182,11 @@ export default function DashboardPage() {
     window.location.href = '/';
   };
 
-  const toggleGuestGroup = (date: string) => {
-    setExpandedGuestGroups((prev) => ({
-      ...prev,
-      [date]: !prev[date],
-    }));
-  };
-
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('it-IT');
   };
 
-  const getDeskName = (booking: Booking) => {
+  const getDeskLabel = (booking: Booking) => {
     const desk = booking.desk;
     const isMeetingRoom = desk ? desk.desk_number >= 20 : false;
 
@@ -172,6 +195,17 @@ export default function DashboardPage() {
     return isMeetingRoom
       ? `Sala riunioni ${desk.desk_number}`
       : `Postazione ${desk.desk_number}`;
+  };
+
+  const toggleGuestGroup = (date: string) => {
+    setExpandedGuestGroups((prev) => ({
+      ...prev,
+      [date]: !prev[date],
+    }));
+  };
+
+  const toggleMainBooking = (id: number) => {
+    setExpandedMainBookingId((prev) => (prev === id ? null : id));
   };
 
   const mainBookings = useMemo(
@@ -194,23 +228,14 @@ export default function DashboardPage() {
     });
 
     return Array.from(map.entries())
-      .map(([date, items]) => {
-        const sortedItems = [...items].sort((a, b) => {
-          const aDesk = a.desk?.desk_number ?? 0;
-          const bDesk = b.desk?.desk_number ?? 0;
-          return aDesk - bDesk;
-        });
-
-        const desksSummary = sortedItems
-          .map((booking) => getDeskName(booking))
-          .join(', ');
-
-        return {
-          date,
-          items: sortedItems,
-          desksSummary,
-        };
-      })
+      .map(([date, items]) => ({
+        date,
+        items: items.sort((a, b) => {
+          const aDeskNumber = a.desk?.desk_number ?? a.desk_id;
+          const bDeskNumber = b.desk?.desk_number ?? b.desk_id;
+          return aDeskNumber - bDeskNumber;
+        }),
+      }))
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [guestBookings]);
 
@@ -229,7 +254,7 @@ export default function DashboardPage() {
       <main style={styles.page}>
         <div style={styles.card}>
           <div style={styles.logoWrapper}>
-            <img src="/logo.png" alt="Logo" style={styles.logoSmall} />
+            <img src="/logo.png" alt="Logo" style={styles.smallLogo} />
           </div>
 
           <h1 style={styles.title}>Benvenuto/a</h1>
@@ -256,57 +281,69 @@ export default function DashboardPage() {
             <div style={styles.sectionContainer}>
               <h3 style={styles.sectionTitle}>Prenotazioni principali</h3>
 
-              {mainBookings.map((booking) => {
-                const desk = booking.desk;
-                const isMeetingRoom = desk ? desk.desk_number >= 20 : false;
+              <div style={styles.mainBookingsGrid}>
+                {mainBookings.map((booking) => {
+                  const desk = booking.desk;
+                  const isMeetingRoom = desk ? desk.desk_number >= 20 : false;
+                  const isExpanded = expandedMainBookingId === booking.id;
 
-                return (
-                  <div
-                    key={booking.id}
-                    style={{
-                      ...styles.bookingCard,
-                      ...(isMeetingRoom
-                        ? styles.meetingBookingCard
-                        : styles.normalBookingCard),
-                    }}
-                  >
-                    <div style={styles.bookingTop}>
-                      <span style={styles.bookingBadge}>
-                        {isMeetingRoom ? 'Sala riunioni' : 'Postazione'}
-                      </span>
-                      <span style={styles.bookingDate}>
-                        {formatDate(booking.booking_date)}
-                      </span>
-                    </div>
-
-                    <div style={styles.bookingMain}>
-                      <strong>
-                        {desk
-                          ? isMeetingRoom
-                            ? `Sala riunioni ${desk.desk_number}`
-                            : `Postazione ${desk.desk_number}`
-                          : `Desk ID ${booking.desk_id}`}
-                      </strong>
-                    </div>
-
-                    <div style={styles.actions}>
-                      <Link
-                        href={`/booking/desk?date=${booking.booking_date}&bookingId=${booking.id}`}
-                        style={styles.modifyButton}
-                      >
-                        Modifica
-                      </Link>
-
+                  return (
+                    <div
+                      key={booking.id}
+                      style={{
+                        ...styles.mainCompactCard,
+                        ...(isMeetingRoom
+                          ? styles.meetingBookingCard
+                          : styles.normalBookingCard),
+                      }}
+                    >
                       <button
-                        style={styles.deleteButton}
-                        onClick={() => handleDelete(booking.id)}
+                        type="button"
+                        style={styles.mainCompactSummaryButton}
+                        onClick={() => toggleMainBooking(booking.id)}
+                        aria-expanded={isExpanded}
                       >
-                        Cancella
+                        <div style={styles.mainCompactTop}>
+                          <span style={styles.bookingBadge}>
+                            {isMeetingRoom ? 'Sala riunioni' : 'Postazione'}
+                          </span>
+                          <span style={styles.bookingDateLarge}>
+                            {formatDate(booking.booking_date)}
+                          </span>
+                        </div>
+
+                        <div style={styles.mainCompactBody}>
+                          <strong>
+                            {desk
+                              ? isMeetingRoom
+                                ? `Sala ${desk.desk_number}`
+                                : `Postazione ${desk.desk_number}`
+                              : `Desk ID ${booking.desk_id}`}
+                          </strong>
+                        </div>
                       </button>
+
+                      {isExpanded && (
+                        <div style={styles.compactActions}>
+                          <Link
+                            href={`/booking/desk?date=${booking.booking_date}&bookingId=${booking.id}`}
+                            style={styles.smallModifyButton}
+                          >
+                            Modifica
+                          </Link>
+
+                          <button
+                            style={styles.smallDeleteButton}
+                            onClick={() => handleDelete(booking.id)}
+                          >
+                            Cancella
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -316,35 +353,48 @@ export default function DashboardPage() {
 
               {groupedGuestBookings.map((group: GroupedGuestBookings) => {
                 const isExpanded = expandedGuestGroups[group.date] ?? false;
+                const selectedDesks = group.items.map(getDeskLabel).join(', ');
 
                 return (
                   <div key={group.date} style={styles.guestGroupCard}>
-                    <button
-                      type="button"
-                      style={styles.guestSummaryButton}
-                      onClick={() => toggleGuestGroup(group.date)}
-                      aria-expanded={isExpanded}
-                    >
-                      <div style={styles.guestGroupHeader}>
+                    <div style={styles.guestSummaryHeaderRow}>
+                      <div style={styles.guestSummaryMain}>
                         <span style={styles.guestGroupBadge}>Ospiti</span>
-                        <span style={styles.bookingDate}>
-                          {formatDate(group.date)}
+                        <span style={styles.guestSummaryCount}>
+                          {group.items.length}{' '}
+                          {group.items.length === 1 ? 'ospite' : 'ospiti'}
                         </span>
                       </div>
 
-                      <div style={styles.guestSummaryContent}>
-                        <p style={styles.guestSummaryText}>
-                          <strong>Numero ospiti:</strong> {group.items.length}
-                        </p>
-                        <p style={styles.guestSummaryText}>
-                          <strong>Postazioni selezionate:</strong>{' '}
-                          {group.desksSummary}
-                        </p>
-                        <p style={styles.guestSummaryToggle}>
-                          {isExpanded ? 'Nascondi dettagli' : 'Mostra dettagli'}
-                        </p>
-                      </div>
-                    </button>
+                      <span style={styles.bookingDateLarge}>
+                        {formatDate(group.date)}
+                      </span>
+                    </div>
+
+                    <div style={styles.guestSummaryInfo}>
+                      <p style={styles.guestSummaryText}>
+                        <strong>Postazioni selezionate:</strong> {selectedDesks}
+                      </p>
+                    </div>
+
+                    <div style={styles.guestSummaryActions}>
+                      <button
+                        type="button"
+                        style={styles.guestDeleteAllAction}
+                        onClick={() => handleDeleteGuestGroup(group)}
+                      >
+                        Cancella tutti
+                      </button>
+
+                      <button
+                        type="button"
+                        style={styles.guestTextAction}
+                        onClick={() => toggleGuestGroup(group.date)}
+                        aria-expanded={isExpanded}
+                      >
+                        {isExpanded ? 'Nascondi dettagli' : 'Mostra dettagli'}
+                      </button>
+                    </div>
 
                     {isExpanded && (
                       <div style={styles.guestList}>
@@ -366,6 +416,9 @@ export default function DashboardPage() {
                             >
                               <div style={styles.guestItemTop}>
                                 <strong>{`Ospite ${index + 1}`}</strong>
+                                <span style={styles.bookingDateLargeSmallCard}>
+                                  {formatDate(booking.booking_date)}
+                                </span>
                               </div>
 
                               <div style={styles.guestItemMiddle}>
@@ -376,9 +429,16 @@ export default function DashboardPage() {
                                   : `Desk ID ${booking.desk_id}`}
                               </div>
 
-                              <div style={styles.guestItemActions}>
+                              <div style={styles.compactActions}>
+                                <Link
+                                  href={`/booking/desk?date=${booking.booking_date}&bookingId=${booking.id}`}
+                                  style={styles.smallModifyButton}
+                                >
+                                  Modifica
+                                </Link>
+
                                 <button
-                                  style={styles.deleteButton}
+                                  style={styles.smallDeleteButton}
                                   onClick={() => handleDelete(booking.id)}
                                 >
                                   Cancella
@@ -450,7 +510,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   card: {
     width: '100%',
-    maxWidth: '620px',
+    maxWidth: '760px',
     backgroundColor: '#ffffff',
     borderRadius: 'clamp(14px, 4vw, 16px)',
     padding: 'clamp(16px, 4.5vw, 24px)',
@@ -465,11 +525,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoSmall: {
-    width: '110px',
+  smallLogo: {
+    width: '120px',
+    maxWidth: '100%',
     height: 'auto',
     display: 'block',
-    objectFit: 'contain',
   },
   title: {
     textAlign: 'center',
@@ -487,6 +547,32 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: 0,
     lineHeight: 1.3,
     textAlign: 'center',
+  },
+  mapButton: {
+    width: '100%',
+    minHeight: '46px',
+    padding: '12px 14px',
+    borderRadius: '10px',
+    border: 'none',
+    backgroundColor: '#0070f3',
+    color: '#fff',
+    fontSize: '15px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    boxSizing: 'border-box',
+  },
+  logoutButton: {
+    width: '100%',
+    minHeight: '44px',
+    padding: '10px 14px',
+    borderRadius: '10px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: '#d32f2f',
+    fontSize: '15px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxSizing: 'border-box',
   },
   sectionContainer: {
     display: 'flex',
@@ -511,26 +597,44 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#fafbfd',
     boxSizing: 'border-box',
   },
-  mapButton: {
+  mainBookingsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: '12px',
     width: '100%',
-    minHeight: '44px',
-    padding: '12px 14px',
-    borderRadius: '10px',
-    border: 'none',
-    backgroundColor: '#0070f3',
-    color: '#fff',
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxSizing: 'border-box',
   },
-  bookingCard: {
+  mainCompactCard: {
     borderRadius: '14px',
-    padding: 'clamp(12px, 3.8vw, 16px)',
+    padding: '12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '10px',
     boxSizing: 'border-box',
+    minHeight: '120px',
+    width: '100%',
+  },
+  mainCompactSummaryButton: {
+    width: '100%',
+    border: 'none',
+    backgroundColor: 'transparent',
+    padding: 0,
+    cursor: 'pointer',
+    textAlign: 'left',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  mainCompactTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  mainCompactBody: {
+    fontSize: '14px',
+    lineHeight: 1.35,
+    wordBreak: 'break-word',
   },
   normalBookingCard: {
     backgroundColor: '#eef4ff',
@@ -540,61 +644,60 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#fff4e5',
     border: '1px solid #f2c078',
   },
-  bookingTop: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '10px',
-    flexWrap: 'wrap',
-  },
   bookingBadge: {
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: 700,
     backgroundColor: '#ffffff',
     padding: '6px 10px',
     borderRadius: '999px',
     lineHeight: 1.2,
   },
-  bookingDate: {
-    fontSize: 'clamp(13px, 3.8vw, 14px)',
-    color: '#555',
-    lineHeight: 1.3,
+  bookingDateLarge: {
+    fontSize: '18px',
+    fontWeight: 700,
+    color: '#334155',
+    lineHeight: 1.2,
+    textAlign: 'right',
     wordBreak: 'break-word',
   },
-  bookingMain: {
-    fontSize: 'clamp(16px, 4.5vw, 18px)',
-    lineHeight: 1.35,
+  bookingDateLargeSmallCard: {
+    fontSize: '16px',
+    fontWeight: 700,
+    color: '#334155',
+    lineHeight: 1.2,
+    textAlign: 'right',
     wordBreak: 'break-word',
   },
-  actions: {
+  compactActions: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: '10px',
+    gap: '8px',
     width: '100%',
+    marginTop: '2px',
   },
-  modifyButton: {
+  smallModifyButton: {
     width: '100%',
     minWidth: 0,
     backgroundColor: '#faad14',
     color: '#fff',
-    padding: '12px 12px',
-    borderRadius: '10px',
+    padding: '8px 10px',
+    borderRadius: '8px',
     textDecoration: 'none',
     textAlign: 'center',
-    fontSize: '14px',
+    fontSize: '12px',
     fontWeight: 600,
     boxSizing: 'border-box',
   },
-  deleteButton: {
+  smallDeleteButton: {
     width: '100%',
     minWidth: 0,
     backgroundColor: '#ff4d4f',
     color: '#fff',
     border: 'none',
-    padding: '12px 12px',
-    borderRadius: '10px',
+    padding: '8px 10px',
+    borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '14px',
+    fontSize: '12px',
     fontWeight: 600,
     boxSizing: 'border-box',
   },
@@ -606,23 +709,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'column',
     gap: '12px',
     boxSizing: 'border-box',
-    overflow: 'hidden',
-  },
-  guestSummaryButton: {
-    width: '100%',
-    border: 'none',
-    backgroundColor: 'transparent',
     padding: 'clamp(12px, 3.8vw, 16px)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    textAlign: 'left',
-    cursor: 'pointer',
-    boxSizing: 'border-box',
   },
-  guestGroupHeader: {
+  guestSummaryHeaderRow: {
     display: 'flex',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '10px',
+    flexWrap: 'wrap',
+  },
+  guestSummaryMain: {
+    display: 'flex',
     alignItems: 'center',
     gap: '10px',
     flexWrap: 'wrap',
@@ -635,7 +732,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '999px',
     lineHeight: 1.2,
   },
-  guestSummaryContent: {
+  guestSummaryCount: {
+    fontSize: '14px',
+    fontWeight: 700,
+    color: '#1f2937',
+    lineHeight: 1.3,
+  },
+  guestSummaryInfo: {
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
@@ -643,22 +746,39 @@ const styles: { [key: string]: React.CSSProperties } = {
   guestSummaryText: {
     margin: 0,
     fontSize: '14px',
+    color: '#475569',
     lineHeight: 1.4,
-    color: '#1f2937',
     wordBreak: 'break-word',
   },
-  guestSummaryToggle: {
-    margin: '4px 0 0 0',
-    fontSize: '13px',
-    fontWeight: 600,
+  guestSummaryActions: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  guestTextAction: {
+    border: 'none',
+    backgroundColor: 'transparent',
+    padding: 0,
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 700,
     color: '#0070f3',
+  },
+  guestDeleteAllAction: {
+    border: 'none',
+    backgroundColor: 'transparent',
+    padding: 0,
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 700,
+    color: '#d32f2f',
   },
   guestList: {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
-    padding: '0 clamp(12px, 3.8vw, 16px) clamp(12px, 3.8vw, 16px)',
-    boxSizing: 'border-box',
   },
   guestItem: {
     borderRadius: '12px',
@@ -678,7 +798,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   guestItemTop: {
     display: 'flex',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     gap: '10px',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -688,11 +808,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 600,
     lineHeight: 1.35,
     wordBreak: 'break-word',
-  },
-  guestItemActions: {
-    display: 'flex',
-    gap: '10px',
-    width: '100%',
   },
   primaryButton: {
     marginTop: '8px',
@@ -706,19 +821,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     textDecoration: 'none',
     fontSize: '16px',
     fontWeight: 600,
-    boxSizing: 'border-box',
-  },
-  logoutButton: {
-    width: '100%',
-    minHeight: '44px',
-    padding: '12px 14px',
-    borderRadius: '10px',
-    border: 'none',
-    backgroundColor: '#d32f2f',
-    color: '#fff',
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
     boxSizing: 'border-box',
   },
   message: {
