@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
-import CardLogo from '../../components/CardLogo';
+import CardLogo from '../../../components/CardLogo';
 
 export default function BookingDatePage() {
   const router = useRouter();
@@ -108,8 +108,8 @@ export default function BookingDatePage() {
           <img src="/logo.png" alt="Logo" style={styles.logo} />
         </div>
 
-        <h1 style={styles.title}>NTT Salerno prenotazione postazioni</h1>
-        <h2 style={styles.subtitle}>Seleziona il giorno</h2>
+        
+        <h1 style={styles.title}>Seleziona il giorno</h1>
 
         <div style={styles.formGroup}>
           <label style={styles.label}>Giorno</label>
