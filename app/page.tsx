@@ -69,7 +69,7 @@ export default function Home() {
         </div>
         
         <h1 style={styles.title}> Salerno </h1>
-        <h4 style={styles.title}> Prenotazione postazioni </h4>
+        <h1 style={styles.title2}> Prenotazione postazioni </h1>
 
         <div style={styles.formGroup}>
           <label style={styles.label}>Email</label>
@@ -142,6 +142,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: 0,
     textAlign: 'center',
     fontSize: 'clamp(20px, 5.5vw, 24px)',
+    lineHeight: 1.3,
+    wordBreak: 'break-word',
+  },
+  
+  title2: {
+    margin: 0,
+    textAlign: 'center',
+    fontSize: 'clamp(14px, 3.5vw, 18px)',
     lineHeight: 1.3,
     wordBreak: 'break-word',
   },
