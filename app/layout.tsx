@@ -31,7 +31,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="it">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <div style={styles.wrapper}>
+          <header style={styles.header}>
+            <img src="/logo.png" alt="Logo" style={styles.logo} />
+          </header>
+
+          <div style={styles.content}>
+            {children}
+          </div>
+        </div>
+      </body>
     </html>
   );
 }
