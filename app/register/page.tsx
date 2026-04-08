@@ -6,6 +6,8 @@ import Link from 'next/link';
 
 import { supabase } from '../../lib/supabase';
 
+import CardLogo from '../../components/CardLogo';
+
 export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
 
@@ -68,6 +70,9 @@ export default function RegisterPage() {
   return (
     <main style={styles.page}>
       <div style={styles.card}>
+        <div style={styles.logoWrapper}>
+          <img src="/logo.png" alt="Logo" style={styles.logo} />
+        </div>
         <h1 style={styles.title}>Registrazione</h1>
 
         <div style={styles.formGroup}>
