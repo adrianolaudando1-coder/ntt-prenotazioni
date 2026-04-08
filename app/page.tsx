@@ -68,8 +68,8 @@ export default function Home() {
           <img src="/logo.png" alt="Logo" style={styles.logo} />
         </div>
         
-        <h1 style={styles.title}> Sede Salerno </h1>
-        <h1 style={styles.title}> Prenotazione postazioni </h1>
+        <h1 style={styles.title}> Salerno </h1>
+        <h2 style={styles.title}> Prenotazione postazioni </h2>
 
         <div style={styles.formGroup}>
           <label style={styles.label}>Email</label>
