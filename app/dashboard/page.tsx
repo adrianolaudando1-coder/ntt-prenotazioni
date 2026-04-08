@@ -387,7 +387,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   card: { width: '100%', maxWidth: '620px', backgroundColor: '#ffffff', borderRadius: 'clamp(14px, 4vw, 16px)', padding: 'clamp(16px, 4.5vw, 24px)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', gap: 'clamp(14px, 4vw, 18px)', boxSizing: 'border-box' },
   title: { textAlign: 'center', fontSize: 'clamp(20px, 5.5vw, 24px)', margin: 0, lineHeight: 1.3, wordBreak: 'break-word' },
   welcomeText: { margin: 0, textAlign: 'center', color: '#555', fontSize: 'clamp(14px, 4vw, 16px)', lineHeight: 1.4, wordBreak: 'break-word' },
-  topButtonsRow: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', width: '100%' },
+  topButtonsRow: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', width: '100%', marginBottom: '12px' },
   logoutButton: { width: '100%', minHeight: '44px', padding: '10px 12px', borderRadius: '10px', border: '1px solid #d32f2f', backgroundColor: '#fff', color: '#d32f2f', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxSizing: 'border-box' },
   mapButton: { width: '100%', minHeight: '44px', padding: '10px 12px', borderRadius: '10px', border: '1px solid #0070f3', backgroundColor: '#fff', color: '#0070f3', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxSizing: 'border-box' },
   sectionHeader: { display: 'flex', justifyContent: 'center' },
