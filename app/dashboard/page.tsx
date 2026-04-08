@@ -42,12 +42,10 @@ export default function DashboardPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [showMap, setShowMap] = useState(false);
-  const [expandedMainBookingId, setExpandedMainBookingId] = useState<number | null>(
-    null
-  );
   const [expandedGuestGroups, setExpandedGuestGroups] = useState<
     Record<string, boolean>
   >({});
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -76,6 +74,17 @@ export default function DashboardPage() {
     };
 
     init();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const loadBookings = async (userId: string) => {
@@ -139,10 +148,6 @@ export default function DashboardPage() {
     }
 
     setBookings((prev) => prev.filter((b) => b.id !== id));
-
-    if (expandedMainBookingId === id) {
-      setExpandedMainBookingId(null);
-    }
   };
 
   const handleDeleteGuestGroup = async (group: GroupedGuestBookings) => {
@@ -204,10 +209,6 @@ export default function DashboardPage() {
     }));
   };
 
-  const toggleMainBooking = (id: number) => {
-    setExpandedMainBookingId((prev) => (prev === id ? null : id));
-  };
-
   const mainBookings = useMemo(
     () => bookings.filter((booking) => !booking.is_guest),
     [bookings]
@@ -259,16 +260,14 @@ export default function DashboardPage() {
 
           <h1 style={styles.title}>Benvenuto/a</h1>
 
-          <p style={styles.title}>
+          <p style={styles.userName}>
             <strong>{fullName || user?.email}</strong>
           </p>
 
-          <button style={styles.mapButton} onClick={() => setShowMap(true)}>
-            Mostra mappa
-          </button>
-
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.subtitle}>Le tue prenotazioni</h2>
+          <div style={styles.bookingsIntroSpace}>
+            <div style={styles.sectionHeader}>
+              <h2 style={styles.subtitle}>Le tue prenotazioni</h2>
+            </div>
           </div>
 
           {mainBookings.length === 0 && guestBookings.length === 0 && (
@@ -278,14 +277,30 @@ export default function DashboardPage() {
           )}
 
           {mainBookings.length > 0 && (
-            <div style={styles.sectionContainer}>
-              <h3 style={styles.sectionTitle}>Prenotazioni principali</h3>
+            <div style={styles.sectionBox}>
+              <div style={styles.sectionTopRow}>
+                <h3 style={styles.sectionTitle}>Prenotazioni principali</h3>
 
-              <div style={styles.mainBookingsGrid}>
+                <button
+                  type="button"
+                  style={styles.mapInlineButton}
+                  onClick={() => setShowMap(true)}
+                >
+                  Mostra mappa
+                </button>
+              </div>
+
+              <div
+                style={{
+                  ...styles.mainBookingsGrid,
+                  gridTemplateColumns: isMobile
+                    ? 'repeat(2, minmax(0, 1fr))'
+                    : 'repeat(3, minmax(0, 1fr))',
+                }}
+              >
                 {mainBookings.map((booking) => {
                   const desk = booking.desk;
                   const isMeetingRoom = desk ? desk.desk_number >= 20 : false;
-                  const isExpanded = expandedMainBookingId === booking.id;
 
                   return (
                     <div
@@ -295,52 +310,42 @@ export default function DashboardPage() {
                         ...(isMeetingRoom
                           ? styles.meetingBookingCard
                           : styles.normalBookingCard),
-                        ...(isExpanded ? styles.mainCompactCardExpanded : {}),
                       }}
                     >
-                      <button
-                        type="button"
-                        style={styles.mainCompactSummaryButton}
-                        onClick={() => toggleMainBooking(booking.id)}
-                        aria-expanded={isExpanded}
-                      >
+                      <div style={styles.mainCardContent}>
                         <div style={styles.mainCompactTop}>
-                          <span style={styles.bookingBadge}>
-                            {isMeetingRoom ? 'Sala riunioni' : 'Postazione'}
-                          </span>
                           <span style={styles.bookingDateLarge}>
                             {formatDate(booking.booking_date)}
                           </span>
                         </div>
 
-                        <div style={styles.mainCompactBody}>
+                        <div style={styles.mainCompactBodyProfessional}>
                           <strong>
                             {desk
                               ? isMeetingRoom
-                                ? `Sala ${desk.desk_number}`
+                                ? `Sala riunioni ${desk.desk_number}`
                                 : `Postazione ${desk.desk_number}`
                               : `Desk ID ${booking.desk_id}`}
                           </strong>
                         </div>
-                      </button>
+                      </div>
 
-                      {isExpanded && (
-                        <div style={styles.compactActions}>
-                          <Link
-                            href={`/booking/desk?date=${booking.booking_date}&bookingId=${booking.id}`}
-                            style={styles.smallModifyButton}
-                          >
-                            Modifica
-                          </Link>
+                      <div style={styles.mainCardFooterActions}>
+                        <Link
+                          href={`/booking/desk?date=${booking.booking_date}&bookingId=${booking.id}`}
+                          style={styles.inlineModifyLink}
+                        >
+                          Modifica
+                        </Link>
 
-                          <button
-                            style={styles.smallDeleteButton}
-                            onClick={() => handleDelete(booking.id)}
-                          >
-                            Cancella
-                          </button>
-                        </div>
-                      )}
+                        <button
+                          type="button"
+                          style={styles.inlineDeleteLink}
+                          onClick={() => handleDelete(booking.id)}
+                        >
+                          Cancella
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -349,8 +354,10 @@ export default function DashboardPage() {
           )}
 
           {groupedGuestBookings.length > 0 && (
-            <div style={styles.sectionContainer}>
-              <h3 style={styles.sectionTitle}>Prenotazioni ospiti</h3>
+            <div style={styles.sectionBox}>
+              <div style={styles.sectionTitleOnlyRow}>
+                <h3 style={styles.sectionTitle}>Prenotazioni ospiti</h3>
+              </div>
 
               {groupedGuestBookings.map((group: GroupedGuestBookings) => {
                 const isExpanded = expandedGuestGroups[group.date] ?? false;
@@ -382,18 +389,18 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         style={styles.guestTextAction}
-                        onClick={() => handleDeleteGuestGroup(group)}
-                      >
-                        Cancella tutti
-                      </button>
-
-                      <button
-                        type="button"
-                        style={styles.guestTextAction}
                         onClick={() => toggleGuestGroup(group.date)}
                         aria-expanded={isExpanded}
                       >
                         {isExpanded ? 'Nascondi dettagli' : 'Mostra dettagli'}
+                      </button>
+
+                      <button
+                        type="button"
+                        style={styles.guestDeleteAllAction}
+                        onClick={() => handleDeleteGuestGroup(group)}
+                      >
+                        Cancella tutti
                       </button>
                     </div>
 
@@ -439,6 +446,7 @@ export default function DashboardPage() {
                                 </Link>
 
                                 <button
+                                  type="button"
                                   style={styles.smallDeleteButton}
                                   onClick={() => handleDelete(booking.id)}
                                 >
@@ -518,7 +526,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
     display: 'flex',
     flexDirection: 'column',
-    gap: 'clamp(14px, 4vw, 18px)',
+    gap: '18px',
     boxSizing: 'border-box',
   },
   logoWrapper: {
@@ -539,6 +547,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.3,
     wordBreak: 'break-word',
   },
+  userName: {
+    textAlign: 'center',
+    fontSize: 'clamp(20px, 5.5vw, 24px)',
+    margin: 0,
+    lineHeight: 1.3,
+    wordBreak: 'break-word',
+  },
+  bookingsIntroSpace: {
+    marginTop: '38px',
+    marginBottom: '8px',
+  },
   sectionHeader: {
     display: 'flex',
     justifyContent: 'center',
@@ -549,41 +568,43 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.3,
     textAlign: 'center',
   },
-  mapButton: {
-    width: '100%',
-    minHeight: '46px',
-    padding: '12px 14px',
-    borderRadius: '10px',
-    border: 'none',
-    backgroundColor: '#0070f3',
-    color: '#fff',
-    fontSize: '15px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxSizing: 'border-box',
-  },
-  logoutButton: {
-    width: '100%',
-    minHeight: '44px',
-    padding: '10px 14px',
-    borderRadius: '10px',
-    border: 'none',
-    backgroundColor: 'transparent',
-    color: '#d32f2f',
-    fontSize: '15px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    boxSizing: 'border-box',
-  },
-  sectionContainer: {
+  sectionBox: {
     display: 'flex',
     flexDirection: 'column',
+    gap: '14px',
+    padding: '18px',
+    borderRadius: '18px',
+    backgroundColor: '#fbfcfe',
+    border: '1px solid #e4ebf3',
+    boxShadow: '0 6px 18px rgba(15, 23, 42, 0.05)',
+    boxSizing: 'border-box',
+  },
+  sectionTopRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: '12px',
+    flexWrap: 'wrap',
+  },
+  sectionTitleOnlyRow: {
+    display: 'flex',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
   },
   sectionTitle: {
     margin: 0,
     fontSize: 'clamp(15px, 4vw, 16px)',
     lineHeight: 1.3,
+    color: '#0f172a',
+  },
+  mapInlineButton: {
+    border: 'none',
+    backgroundColor: '#ffffff',
+    color: '#0070f3',
+    padding: 0,
+    fontSize: '14px',
+    fontWeight: 700,
+    cursor: 'pointer',
   },
   text: {
     textAlign: 'center',
@@ -600,43 +621,34 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   mainBookingsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: '12px',
+    gap: '14px',
     width: '100%',
   },
   mainCompactCard: {
-    borderRadius: '14px',
-    padding: '12px',
+    borderRadius: '16px',
+    padding: '16px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    justifyContent: 'space-between',
+    gap: '18px',
     boxSizing: 'border-box',
-    minHeight: '120px',
-  },
-  mainCompactCardExpanded: {
-    gridColumn: 'span 1',
-  },
-  mainCompactSummaryButton: {
+    minHeight: '155px',
     width: '100%',
-    border: 'none',
-    backgroundColor: 'transparent',
-    padding: 0,
-    cursor: 'pointer',
-    textAlign: 'left',
+  },
+  mainCardContent: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '16px',
   },
   mainCompactTop: {
     display: 'flex',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'flex-start',
-    gap: '8px',
-    flexWrap: 'wrap',
   },
-  mainCompactBody: {
-    fontSize: '14px',
+  mainCompactBodyProfessional: {
+    fontSize: '18px',
     lineHeight: 1.35,
+    color: '#0f172a',
     wordBreak: 'break-word',
   },
   normalBookingCard: {
@@ -647,16 +659,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#fff4e5',
     border: '1px solid #f2c078',
   },
-  bookingBadge: {
-    fontSize: '11px',
-    fontWeight: 700,
-    backgroundColor: '#ffffff',
-    padding: '6px 10px',
-    borderRadius: '999px',
-    lineHeight: 1.2,
-  },
   bookingDateLarge: {
-    fontSize: '18px',
+    fontSize: '19px',
     fontWeight: 700,
     color: '#334155',
     lineHeight: 1.2,
@@ -671,38 +675,27 @@ const styles: { [key: string]: React.CSSProperties } = {
     textAlign: 'right',
     wordBreak: 'break-word',
   },
-  compactActions: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: '8px',
-    width: '100%',
-    marginTop: '2px',
+  mainCardFooterActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: '14px',
+    marginTop: 'auto',
   },
-  smallModifyButton: {
-    width: '100%',
-    minWidth: 0,
-    backgroundColor: '#faad14',
-    color: '#fff',
-    padding: '8px 10px',
-    borderRadius: '8px',
+  inlineModifyLink: {
+    color: '#faad14',
     textDecoration: 'none',
-    textAlign: 'center',
-    fontSize: '12px',
-    fontWeight: 600,
-    boxSizing: 'border-box',
+    fontSize: '13px',
+    fontWeight: 700,
   },
-  smallDeleteButton: {
-    width: '100%',
-    minWidth: 0,
-    backgroundColor: '#ff4d4f',
-    color: '#fff',
+  inlineDeleteLink: {
     border: 'none',
-    padding: '8px 10px',
-    borderRadius: '8px',
+    backgroundColor: 'transparent',
+    color: '#d32f2f',
+    padding: 0,
     cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: 600,
-    boxSizing: 'border-box',
+    fontSize: '13px',
+    fontWeight: 700,
   },
   guestGroupCard: {
     borderRadius: '14px',
@@ -769,6 +762,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 700,
     color: '#0070f3',
   },
+  guestDeleteAllAction: {
+    border: 'none',
+    backgroundColor: 'transparent',
+    padding: 0,
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 700,
+    color: '#d32f2f',
+  },
   guestList: {
     display: 'flex',
     flexDirection: 'column',
@@ -782,13 +784,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '8px',
     boxSizing: 'border-box',
   },
-  normalGuestItem: {
-    backgroundColor: '#eef4ff',
-    border: '1px solid #cfe0ff',
-  },
   meetingGuestItem: {
     backgroundColor: '#fff4e5',
     border: '1px solid #f2c078',
+  },
+  normalGuestItem: {
+    backgroundColor: '#eef4ff',
+    border: '1px solid #cfe0ff',
   },
   guestItemTop: {
     display: 'flex',
@@ -803,6 +805,39 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.35,
     wordBreak: 'break-word',
   },
+  compactActions: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '8px',
+    width: '100%',
+    marginTop: '2px',
+  },
+  smallModifyButton: {
+    width: '100%',
+    minWidth: 0,
+    backgroundColor: '#faad14',
+    color: '#fff',
+    padding: '8px 10px',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    textAlign: 'center',
+    fontSize: '12px',
+    fontWeight: 600,
+    boxSizing: 'border-box',
+  },
+  smallDeleteButton: {
+    width: '100%',
+    minWidth: 0,
+    backgroundColor: '#ff4d4f',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 10px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 600,
+    boxSizing: 'border-box',
+  },
   primaryButton: {
     marginTop: '8px',
     width: '100%',
@@ -815,6 +850,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     textDecoration: 'none',
     fontSize: '16px',
     fontWeight: 600,
+    boxSizing: 'border-box',
+  },
+  logoutButton: {
+    width: '100%',
+    minHeight: '44px',
+    padding: '10px 14px',
+    borderRadius: '10px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: '#d32f2f',
+    fontSize: '15px',
+    fontWeight: 700,
+    cursor: 'pointer',
     boxSizing: 'border-box',
   },
   message: {
