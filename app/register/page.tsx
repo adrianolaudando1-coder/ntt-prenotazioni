@@ -100,7 +100,6 @@ export default function RegisterPage() {
               style={styles.eyeButton}
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? '🙈' : '👁️'}
             </button>
           </div>
         </div>
@@ -120,7 +119,6 @@ export default function RegisterPage() {
               style={styles.eyeButton}
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
-              {showConfirmPassword ? '🙈' : '👁️'}
             </button>
           </div>
         </div>
