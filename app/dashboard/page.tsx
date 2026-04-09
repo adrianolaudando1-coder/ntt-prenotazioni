@@ -586,7 +586,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   card: {
     width: '100%',
-    maxWidth: '1180px',
+    maxWidth: '800px',
     backgroundColor: '#ffffff',
     borderRadius: 'clamp(14px, 4vw, 16px)',
     padding: 'clamp(16px, 4.5vw, 24px)',
