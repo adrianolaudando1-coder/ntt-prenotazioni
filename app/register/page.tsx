@@ -65,7 +65,7 @@ export default function RegisterPage() {
       setEmail('');
       setPassword('');
       setConfirmPassword('');
-    }
+    };
 
   return (
     <main style={styles.page}>
