@@ -53,19 +53,19 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setMessage('Errore registrazione: ' + error.message);
+      if (error.message.includes('User already registered')) {
+        setMessage('Questa email è già registrata.');
+      } else {
+        setMessage('Errore registrazione: ' + error.message);
+      }
     } else {
       setMessage('Registrazione completata! Controlla la tua email.');
 
       setFullName('');
-
       setEmail('');
-
       setPassword('');
-
       setConfirmPassword('');
     }
-  };
 
   return (
     <main style={styles.page}>
