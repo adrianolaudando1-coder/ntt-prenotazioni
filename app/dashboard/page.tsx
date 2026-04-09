@@ -286,7 +286,7 @@ export default function DashboardPage() {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [guestBookings]);
 
-  const desktopMainColumns = Math.min(mainBookings.length || 1, 4);
+  const desktopMainColumns = Math.min(mainBookings.length || 1, 3);
 
   if (loading) {
     return (
