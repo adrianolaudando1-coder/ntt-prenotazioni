@@ -29,7 +29,7 @@ export default function ForgotPassword() {
       setMessage('Errore: ' + error.message);
     } else {
       setMessage(
-        'Email inviata! Controlla la posta per reimpostare la password.'
+        'Se l’email è registrata, riceverai un link per reimpostare la password.'
       );
     }
   };
