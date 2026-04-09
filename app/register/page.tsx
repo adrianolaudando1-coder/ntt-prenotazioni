@@ -10,13 +10,19 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'error' | 'success'>('error');
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = async () => {
     setMessage('');
+    setMessageType('error');
 
-    if (!fullName || !email || !password || !confirmPassword) {
+    const cleanFullName = fullName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanFullName || !cleanEmail || !password || !confirmPassword) {
       setMessage('Compila tutti i campi.');
       return;
     }
@@ -26,31 +32,71 @@ export default function RegisterPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    if (password.length < 6) {
+      setMessage('La password deve contenere almeno 6 caratteri.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            full_name: cleanFullName,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
-      },
-    });
+      });
 
-    if (error) {
-      const msg = error.message?.toLowerCase() || '';
+      if (error) {
+        const msg = error.message?.toLowerCase() || '';
 
-      if (msg.includes('already')) {
-        setMessage('Questa email è già registrata.');
-      } else {
-        setMessage('Errore registrazione: ' + error.message);
+        if (
+          msg.includes('already registered') ||
+          msg.includes('already been registered') ||
+          msg.includes('user already registered') ||
+          msg.includes('already exists') ||
+          msg.includes('duplicate')
+        ) {
+          setMessage('Questa email è già registrata.');
+        } else {
+          setMessage(`Errore registrazione: ${error.message}`);
+        }
+        return;
       }
-    } else {
+
+      /**
+       * Supabase, in alcune configurazioni, può non restituire errore
+       * anche se l'email esiste già, per evitare email enumeration.
+       * In questi casi si può ricevere una risposta "positiva" ma senza
+       * una vera nuova sessione/creazione distinguibile lato client.
+       *
+       * Qui mostriamo un messaggio neutro ma utile.
+       */
+      if (!data.user) {
+        setMessageType('success');
+        setMessage(
+          'Se l’email non è già registrata, riceverai un messaggio di conferma nella tua casella.'
+        );
+        return;
+      }
+
+      setMessageType('success');
       setMessage('Registrazione completata! Controlla la tua email.');
+
       setFullName('');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Errore imprevisto durante la registrazione.';
+      setMessage(`Errore registrazione: ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,7 +145,9 @@ export default function RegisterPage() {
               type="button"
               style={styles.eyeButton}
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
             >
+              
             </button>
           </div>
         </div>
@@ -118,15 +166,34 @@ export default function RegisterPage() {
               type="button"
               style={styles.eyeButton}
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              aria-label={showConfirmPassword ? 'Nascondi conferma password' : 'Mostra conferma password'}
             >
+              
             </button>
           </div>
         </div>
 
-        {message && <p style={styles.message}>{message}</p>}
+        {message && (
+          <p
+            style={{
+              ...styles.message,
+              color: messageType === 'success' ? '#2e7d32' : '#c62828',
+            }}
+          >
+            {message}
+          </p>
+        )}
 
-        <button style={styles.primaryButton} onClick={handleRegister}>
-          Registrati
+        <button
+          style={{
+            ...styles.primaryButton,
+            opacity: loading ? 0.7 : 1,
+            cursor: loading ? 'not-allowed' : 'pointer',
+          }}
+          onClick={handleRegister}
+          disabled={loading}
+        >
+          {loading ? 'Registrazione...' : 'Registrati'}
         </button>
 
         <Link href="/" style={styles.secondaryButton}>
@@ -219,7 +286,6 @@ const styles: { [key: string]: CSSProperties } = {
     backgroundColor: '#0070f3',
     color: '#fff',
     fontSize: '16px',
-    cursor: 'pointer',
   },
 
   secondaryButton: {
@@ -251,6 +317,5 @@ const styles: { [key: string]: CSSProperties } = {
     margin: 0,
     textAlign: 'center',
     fontSize: '14px',
-    color: '#c62828',
   },
 };
