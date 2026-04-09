@@ -517,14 +517,14 @@ const styles: { [key: string]: React.CSSProperties } = {
 
   card: {
     width: '100%',
-    maxWidth: '560px',
+    maxWidth: '1180px',
     backgroundColor: '#ffffff',
     borderRadius: 'clamp(14px, 4vw, 16px)',
     padding: 'clamp(16px, 4.5vw, 24px)',
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
     display: 'flex',
     flexDirection: 'column',
-    gap: 'clamp(12px, 3.5vw, 16px)',
+    gap: '18px',
     boxSizing: 'border-box',
   },
 
