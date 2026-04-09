@@ -80,10 +80,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'column',
     gap: '16px',
   },
+  
   title: {
-    textAlign: 'center',
     margin: 0,
+    textAlign: 'center',
+    fontSize: 'clamp(20px, 5.5vw, 24px)',
+    lineHeight: 1.3,
+    wordBreak: 'break-word',
   },
+  
+  
   input: {
     minHeight: '48px',
     padding: '12px',
