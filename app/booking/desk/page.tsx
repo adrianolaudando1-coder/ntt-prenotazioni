@@ -17,6 +17,10 @@ type ExistingBooking = {
   booking_date: string;
 };
 
+type OccupiedDeskRow = {
+  desk_id: number | string;
+};
+
 export default function BookingDeskPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,17 +35,25 @@ export default function BookingDeskPage() {
   const [desks, setDesks] = useState<Desk[]>([]);
   const [occupiedDeskIds, setOccupiedDeskIds] = useState<number[]>([]);
   const [selectedDeskId, setSelectedDeskId] = useState('');
-  const [selectedGuestDeskIds, setSelectedGuestDeskIds] = useState<string[]>([]);
+  const [selectedGuestDeskIds, setSelectedGuestDeskIds] = useState<string[]>(
+    []
+  );
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<ExistingBooking | null>(null);
+  const [editingBooking, setEditingBooking] = useState<ExistingBooking | null>(
+    null
+  );
 
   useEffect(() => {
     const init = async () => {
-      const { data } = await supabase.auth.getUser();
+      setLoading(true);
+      setMessage('');
 
-      if (!data.user) {
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser();
+
+      if (authError || !authData.user) {
         router.push('/');
         return;
       }
@@ -51,18 +63,19 @@ export default function BookingDeskPage() {
         return;
       }
 
-      setUserId(data.user.id);
+      const currentUser = authData.user;
+      setUserId(currentUser.id);
 
       const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name, email')
-        .eq('id', data.user.id)
+        .eq('id', currentUser.id)
         .single();
 
       setDisplayName(
         profileData?.full_name ||
           profileData?.email ||
-          data.user.email ||
+          currentUser.email ||
           'Utente'
       );
 
@@ -70,7 +83,7 @@ export default function BookingDeskPage() {
         const { data: existingMainBooking } = await supabase
           .from('bookings')
           .select('id')
-          .eq('user_id', data.user.id)
+          .eq('user_id', currentUser.id)
           .eq('booking_date', selectedDate)
           .eq('is_guest', false)
           .limit(1);
@@ -88,7 +101,7 @@ export default function BookingDeskPage() {
           .from('bookings')
           .select('id, desk_id, booking_date')
           .eq('id', bookingId)
-          .eq('user_id', data.user.id)
+          .eq('user_id', currentUser.id)
           .single();
 
         if (bookingData) {
@@ -96,9 +109,12 @@ export default function BookingDeskPage() {
           setEditingBooking(currentEditingBooking);
           setSelectedDeskId(String(currentEditingBooking.desk_id));
         }
+      } else {
+        setEditingBooking(null);
+        setSelectedDeskId('');
       }
 
-      await loadDesksAndOccupied(selectedDate, bookingId, currentEditingBooking);
+      await loadDesksAndOccupied(selectedDate, currentEditingBooking);
       setLoading(false);
     };
 
@@ -126,28 +142,34 @@ export default function BookingDeskPage() {
 
   const loadDesksAndOccupied = async (
     date: string,
-    currentBookingId?: string,
     currentEditingBooking?: ExistingBooking | null
   ) => {
     setMessage('');
 
-    let occupiedQuery = supabase
-      .from('bookings')
-      .select('desk_id, id')
-      .eq('booking_date', date);
-
-    if (currentBookingId) {
-      occupiedQuery = occupiedQuery.neq('id', currentBookingId);
-    }
-
-    const { data: occupiedRows, error: occupiedError } = await occupiedQuery;
+    const { data: occupiedRows, error: occupiedError } = await supabase.rpc(
+      'get_occupied_desk_ids',
+      { p_booking_date: date }
+    );
 
     if (occupiedError) {
       setMessage('Errore nel caricamento delle postazioni occupate.');
       return;
     }
 
-    const occupiedIds = [...new Set((occupiedRows || []).map((row) => Number(row.desk_id)))];
+    let occupiedIds = Array.from(
+      new Set(
+        ((occupiedRows || []) as OccupiedDeskRow[]).map((row) =>
+          Number(row.desk_id)
+        )
+      )
+    );
+
+    if (currentEditingBooking?.desk_id) {
+      occupiedIds = occupiedIds.filter(
+        (deskId) => deskId !== currentEditingBooking.desk_id
+      );
+    }
+
     setOccupiedDeskIds(occupiedIds);
 
     const { data: allDesks, error: desksError } = await supabase
@@ -161,35 +183,16 @@ export default function BookingDeskPage() {
       return;
     }
 
-    let finalDesks = (allDesks as Desk[]) || [];
-    const bookingToCheck = currentEditingBooking || editingBooking;
-
-    if (bookingToCheck?.desk_id) {
-      const editingDeskId = Number(bookingToCheck.desk_id);
-      const alreadyIncluded = finalDesks.some((desk) => desk.id === editingDeskId);
-
-      if (!alreadyIncluded) {
-        const { data: currentDesk } = await supabase
-          .from('desks')
-          .select('id, desk_number, label')
-          .eq('id', editingDeskId)
-          .single();
-
-        if (currentDesk) {
-          finalDesks = [...finalDesks, currentDesk as Desk].sort(
-            (a, b) => a.desk_number - b.desk_number
-          );
-        }
-      }
-    }
-
+    const finalDesks = (allDesks as Desk[]) || [];
     setDesks(finalDesks);
 
-    if (!isGuestFlow && selectedDeskId && occupiedIds.includes(Number(selectedDeskId))) {
-      setSelectedDeskId('');
+    if (!isGuestFlow) {
+      setSelectedDeskId((prev) =>
+        prev && occupiedIds.includes(Number(prev)) ? '' : prev
+      );
     }
 
-    if (isGuestFlow && selectedGuestDeskIds.length > 0) {
+    if (isGuestFlow) {
       setSelectedGuestDeskIds((prev) =>
         prev.filter((deskId) => !occupiedIds.includes(Number(deskId)))
       );
@@ -202,12 +205,20 @@ export default function BookingDeskPage() {
   );
 
   const selectedGuestDesks = useMemo(
-    () => desks.filter((desk) => selectedGuestDeskIds.includes(String(desk.id))),
+    () =>
+      desks.filter((desk) => selectedGuestDeskIds.includes(String(desk.id))),
     [desks, selectedGuestDeskIds]
   );
 
-  const normalDesks = desks.filter((desk) => desk.desk_number < 20);
-  const meetingRoomDesks = desks.filter((desk) => desk.desk_number >= 20);
+  const normalDesks = useMemo(
+    () => desks.filter((desk) => desk.desk_number < 20),
+    [desks]
+  );
+
+  const meetingRoomDesks = useMemo(
+    () => desks.filter((desk) => desk.desk_number >= 20),
+    [desks]
+  );
 
   const handleDateChange = (newDate: string) => {
     if (!newDate) return;
@@ -215,16 +226,21 @@ export default function BookingDeskPage() {
     const params = new URLSearchParams();
     params.set('date', newDate);
 
-    if (bookingId) params.set('bookingId', bookingId);
-    if (isGuestFlow) params.set('guestCount', String(guestCount));
+    if (bookingId) {
+      params.set('bookingId', bookingId);
+    }
+
+    if (isGuestFlow) {
+      params.set('guestCount', String(guestCount));
+    }
 
     router.push(`/booking/desk?${params.toString()}`);
   };
 
   const toggleGuestDeskSelection = (deskId: string) => {
-    const deskIdNumber = Number(deskId);
+    const numericDeskId = Number(deskId);
 
-    if (occupiedDeskIds.includes(deskIdNumber)) {
+    if (occupiedDeskIds.includes(numericDeskId)) {
       setMessage('Questa postazione è già prenotata per il giorno selezionato.');
       return;
     }
@@ -232,12 +248,15 @@ export default function BookingDeskPage() {
     const isSelected = selectedGuestDeskIds.includes(deskId);
 
     if (isSelected) {
+      setMessage('');
       setSelectedGuestDeskIds((prev) => prev.filter((id) => id !== deskId));
       return;
     }
 
     if (selectedGuestDeskIds.length >= guestCount) {
-      setMessage(`Puoi selezionare al massimo ${guestCount} postazioni per gli ospiti.`);
+      setMessage(
+        `Puoi selezionare al massimo ${guestCount} postazioni per gli ospiti.`
+      );
       return;
     }
 
@@ -250,7 +269,9 @@ export default function BookingDeskPage() {
 
     if (isGuestFlow) {
       if (selectedGuestDeskIds.length !== guestCount) {
-        setMessage(`Devi selezionare esattamente ${guestCount} postazioni per gli ospiti.`);
+        setMessage(
+          `Devi selezionare esattamente ${guestCount} postazioni per gli ospiti.`
+        );
         return;
       }
 
@@ -260,7 +281,7 @@ export default function BookingDeskPage() {
 
       if (hasOccupiedDesk) {
         setMessage('Una o più postazioni selezionate non sono più disponibili.');
-        await loadDesksAndOccupied(selectedDate, bookingId, editingBooking);
+        await loadDesksAndOccupied(selectedDate, editingBooking);
         return;
       }
 
@@ -287,7 +308,7 @@ export default function BookingDeskPage() {
 
       if (error) {
         setMessage(getReadableErrorMessage(error, false));
-        await loadDesksAndOccupied(selectedDate, bookingId, editingBooking);
+        await loadDesksAndOccupied(selectedDate, editingBooking);
         return;
       }
 
@@ -302,7 +323,7 @@ export default function BookingDeskPage() {
 
     if (occupiedDeskIds.includes(Number(selectedDeskId))) {
       setMessage('Questa postazione è già prenotata per il giorno selezionato.');
-      await loadDesksAndOccupied(selectedDate, bookingId, editingBooking);
+      await loadDesksAndOccupied(selectedDate, editingBooking);
       return;
     }
 
@@ -333,7 +354,7 @@ export default function BookingDeskPage() {
 
       if (error) {
         setMessage(getReadableErrorMessage(error, true));
-        await loadDesksAndOccupied(selectedDate, bookingId, editingBooking);
+        await loadDesksAndOccupied(selectedDate, editingBooking);
         return;
       }
     } else {
@@ -350,7 +371,7 @@ export default function BookingDeskPage() {
 
       if (error) {
         setMessage(getReadableErrorMessage(error, false));
-        await loadDesksAndOccupied(selectedDate, bookingId, editingBooking);
+        await loadDesksAndOccupied(selectedDate, editingBooking);
         return;
       }
     }
@@ -384,7 +405,9 @@ export default function BookingDeskPage() {
             }}
             style={{
               ...styles.deskButton,
-              ...(isMeetingRoom ? styles.meetingDeskButton : styles.normalDeskButton),
+              ...(isMeetingRoom
+                ? styles.meetingDeskButton
+                : styles.normalDeskButton),
               ...(isSelected ? styles.selectedDeskButton : {}),
               ...(isOccupied ? styles.occupiedDeskButton : {}),
               ...(saving ? styles.disabledButton : {}),
@@ -420,6 +443,7 @@ export default function BookingDeskPage() {
         </div>
 
         <h1 style={styles.title}>Prenotazione postazioni</h1>
+
         <h2 style={styles.subtitle}>
           {isGuestFlow
             ? `Prenotazione ospiti (${guestCount})`
@@ -458,7 +482,8 @@ export default function BookingDeskPage() {
         {isGuestFlow && (
           <div style={styles.guestInfoBox}>
             <p style={styles.guestInfoTitle}>
-              Postazioni selezionate per ospiti: {selectedGuestDeskIds.length} / {guestCount}
+              Postazioni selezionate per ospiti: {selectedGuestDeskIds.length} /{' '}
+              {guestCount}
             </p>
 
             {selectedGuestDesks.length > 0 && (
@@ -519,7 +544,10 @@ export default function BookingDeskPage() {
         </button>
 
         <button
-          style={styles.secondaryButton}
+          style={{
+            ...styles.secondaryButton,
+            ...(saving ? styles.disabledButton : {}),
+          }}
           onClick={() => router.push('/dashboard')}
           disabled={saving}
         >
@@ -647,6 +675,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 600,
     boxSizing: 'border-box',
     textAlign: 'center',
+    transition: 'all 0.15s ease',
   },
 
   normalDeskButton: {
