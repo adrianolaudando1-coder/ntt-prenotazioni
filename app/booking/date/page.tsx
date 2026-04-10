@@ -15,6 +15,7 @@ export default function BookingDatePage() {
   const [hasExistingBooking, setHasExistingBooking] = useState(false);
   const [showGuestOptions, setShowGuestOptions] = useState(false);
   const [guestCount, setGuestCount] = useState('1');
+  const [isOfficeFull, setIsOfficeFull] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -32,12 +33,55 @@ export default function BookingDatePage() {
     checkUser();
   }, [router]);
 
+  const checkOfficeCapacity = async (date: string) => {
+    if (!date) {
+      setIsOfficeFull(false);
+      return;
+    }
+
+    // Conta le postazioni totali disponibili
+    const { count: totalDesks, error: desksError } = await supabase
+      .from('desks')
+      .select('*', { count: 'exact', head: true });
+
+    if (desksError) {
+      setMessage('Errore nel controllo della disponibilità della sede.');
+      setIsOfficeFull(false);
+      return;
+    }
+
+    // Conta le prenotazioni per quel giorno
+    const { count: bookedDesks, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('*', { count: 'exact', head: true })
+      .eq('booking_date', date)
+      .eq('is_guest', false);
+
+    if (bookingsError) {
+      setMessage('Errore nel controllo della disponibilità della sede.');
+      setIsOfficeFull(false);
+      return;
+    }
+
+    const officeFull =
+      typeof totalDesks === 'number' &&
+      typeof bookedDesks === 'number' &&
+      bookedDesks >= totalDesks;
+
+    setIsOfficeFull(officeFull);
+
+    if (officeFull) {
+      setMessage('Sede al completo');
+    }
+  };
+
   const checkExistingBooking = async (date: string, currentUserId: string) => {
     if (!date || !currentUserId) return;
 
     setMessage('');
     setHasExistingBooking(false);
     setShowGuestOptions(false);
+    setIsOfficeFull(false);
 
     const { data, error } = await supabase
       .from('bookings')
@@ -56,6 +100,8 @@ export default function BookingDatePage() {
       setHasExistingBooking(true);
       setMessage('Hai già una prenotazione');
     }
+
+    await checkOfficeCapacity(date);
   };
 
   const handleDateChange = async (value: string) => {
@@ -72,6 +118,11 @@ export default function BookingDatePage() {
       return;
     }
 
+    if (isOfficeFull) {
+      setMessage('Sede al completo');
+      return;
+    }
+
     if (hasExistingBooking) {
       setMessage('Hai già una prenotazione');
       return;
@@ -85,6 +136,11 @@ export default function BookingDatePage() {
 
     if (!selectedDate) {
       setMessage('Seleziona un giorno per continuare.');
+      return;
+    }
+
+    if (isOfficeFull) {
+      setMessage('Sede al completo');
       return;
     }
 
@@ -108,7 +164,6 @@ export default function BookingDatePage() {
           <img src="/logo.png" alt="Logo" style={styles.smallLogo} />
         </div>
 
-        
         <h1 style={styles.title}>Seleziona il giorno</h1>
 
         <div style={styles.formGroup}>
@@ -122,10 +177,28 @@ export default function BookingDatePage() {
           />
         </div>
 
-        {message && <p style={styles.message}>{message}</p>}
+        {message && (
+          <p
+            style={
+              message === 'Sede al completo'
+                ? styles.fullMessage
+                : styles.message
+            }
+          >
+            {message}
+          </p>
+        )}
 
         {!hasExistingBooking && (
-          <button style={styles.primaryButton} onClick={handleContinue}>
+          <button
+            style={
+              isOfficeFull
+                ? { ...styles.primaryButton, ...styles.disabledButton }
+                : styles.primaryButton
+            }
+            onClick={handleContinue}
+            disabled={isOfficeFull}
+          >
             Continua
           </button>
         )}
@@ -157,8 +230,13 @@ export default function BookingDatePage() {
                 </select>
 
                 <button
-                  style={styles.primaryButton}
+                  style={
+                    isOfficeFull
+                      ? { ...styles.primaryButton, ...styles.disabledButton }
+                      : styles.primaryButton
+                  }
                   onClick={handleGuestContinue}
+                  disabled={isOfficeFull}
                 >
                   Continua con ospiti
                 </button>
@@ -257,6 +335,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxSizing: 'border-box',
   },
 
+  disabledButton: {
+    backgroundColor: '#9e9e9e',
+    cursor: 'not-allowed',
+  },
+
   guestButton: {
     width: '100%',
     minHeight: '48px',
@@ -310,18 +393,28 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: 'auto',
     display: 'block',
   },
-  
+
   logoWrapper: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   message: {
     margin: 0,
     textAlign: 'center',
     fontSize: 'clamp(13px, 3.8vw, 14px)',
     color: '#c62828',
+    lineHeight: 1.4,
+    wordBreak: 'break-word',
+  },
+
+  fullMessage: {
+    margin: 0,
+    textAlign: 'center',
+    fontSize: 'clamp(13px, 3.8vw, 14px)',
+    color: '#ff0000',
+    fontWeight: 700,
     lineHeight: 1.4,
     wordBreak: 'break-word',
   },
