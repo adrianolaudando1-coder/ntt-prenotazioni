@@ -5,11 +5,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'NTT Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
-    url: 'https://ntt-prenotazioni-alpha.vercel.app/', // 🔁 cambia con il tuo dominio
+    url: 'https://ntt-prenotazioni-alpha.vercel.app/',
     siteName: 'NTT Salerno Booking',
     images: [
       {
-        url: '/anteprima.png', // 🔁 immagine tua
+        url: 'https://ntt-prenotazioni-alpha.vercel.app/anteprima.png', 
         width: 1200,
         height: 630,
       },
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: 'NTT Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
     images: [
-      '/anteprima.png', // 🔁 stessa immagine
+      'https://ntt-prenotazioni-alpha.vercel.app/anteprima.png', 
     ],
   },
 };
