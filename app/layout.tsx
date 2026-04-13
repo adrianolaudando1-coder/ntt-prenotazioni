@@ -5,20 +5,20 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ntt-prenotazioni-alpha.vercel.app'),
-  title: 'NTT Salerno - Prenotazione Postazioni',
-  description: 'Applicazione interna per prenotare le postazioni di lavoro presso NTT DATA Salerno',
+  metadataBase: new URL('https://prenotazioni-alpha.vercel.app'),
+  title: 'Salerno - Prenotazione Postazioni',
+  description: 'Applicazione interna per prenotare le postazioni di lavoro',
   openGraph: {
-    title: 'NTT Salerno - Prenotazione Postazioni',
+    title: 'Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
     url: '/',
-    siteName: 'NTT Salerno Booking',
+    siteName: 'Salerno Booking',
     images: ['/anteprima.png'],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NTT Salerno - Prenotazione Postazioni',
+    title: 'Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
     images: ['/anteprima.png'],
   },
