@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import CardLogo from '../../../components/CardLogo';
 
 const MAX_DESKS = 25;
+const MAX_GUESTS = 10;
 
 export default function BookingDatePage() {
   const router = useRouter();
 
   const [userId, setUserId] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-  const [message, setMessage] = useState('');
+  const [availabilityMessage, setAvailabilityMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [hasExistingBooking, setHasExistingBooking] = useState(false);
   const [showGuestOptions, setShowGuestOptions] = useState(false);
@@ -38,26 +40,43 @@ export default function BookingDatePage() {
     checkUser();
   }, [router]);
 
-  const buildAvailabilityMessage = (
-    hasBooking: boolean,
-    availableCount: number,
-    officeFull: boolean
-  ) => {
-    if (officeFull) {
-      return 'Sede al completo';
+  const maxSelectableGuests = useMemo(() => {
+    if (availableDesksCount === null) return MAX_GUESTS;
+    return Math.max(0, Math.min(MAX_GUESTS, availableDesksCount));
+  }, [availableDesksCount]);
+
+  useEffect(() => {
+    if (maxSelectableGuests <= 0) {
+      setGuestCount('1');
+      return;
     }
 
-    if (hasBooking) {
-      return `Hai già una prenotazione\nPostazioni disponibili ${availableCount} postazioni/${MAX_DESKS}`;
-    }
+    setGuestCount((prev) => {
+      const current = Number(prev);
+      if (current > maxSelectableGuests) {
+        return String(maxSelectableGuests);
+      }
+      return prev;
+    });
+  }, [maxSelectableGuests]);
 
-    return `Postazioni disponibili ${availableCount} postazioni/${MAX_DESKS}`;
+  const updateMessages = (hasBooking: boolean, availableCount: number) => {
+    setAvailabilityMessage(`Postazioni disponibili ${availableCount}/${MAX_DESKS}`);
+    setStatusMessage(
+      availableCount === 0
+        ? 'Sede al completo'
+        : hasBooking
+        ? 'Hai già una prenotazione'
+        : ''
+    );
   };
 
   const checkOfficeCapacity = async (date: string, currentHasBooking = false) => {
     if (!date) {
       setIsOfficeFull(false);
       setAvailableDesksCount(null);
+      setAvailabilityMessage('');
+      setStatusMessage('');
       return;
     }
 
@@ -67,7 +86,8 @@ export default function BookingDatePage() {
       .eq('booking_date', date);
 
     if (bookingsError) {
-      setMessage('Errore nel controllo della disponibilità della sede.');
+      setAvailabilityMessage('');
+      setStatusMessage('Errore nel controllo della disponibilità della sede.');
       setIsOfficeFull(false);
       setAvailableDesksCount(null);
       return;
@@ -79,15 +99,14 @@ export default function BookingDatePage() {
 
     setAvailableDesksCount(availableCount);
     setIsOfficeFull(officeFull);
-    setMessage(
-      buildAvailabilityMessage(currentHasBooking, availableCount, officeFull)
-    );
+    updateMessages(currentHasBooking, availableCount);
   };
 
   const checkExistingBooking = async (date: string, currentUserId: string) => {
     if (!date || !currentUserId) return;
 
-    setMessage('');
+    setAvailabilityMessage('');
+    setStatusMessage('');
     setHasExistingBooking(false);
     setShowGuestOptions(false);
     setIsOfficeFull(false);
@@ -102,7 +121,7 @@ export default function BookingDatePage() {
       .limit(1);
 
     if (error) {
-      setMessage('Errore nel controllo delle prenotazioni.');
+      setStatusMessage('Errore nel controllo delle prenotazioni.');
       return;
     }
 
@@ -115,27 +134,23 @@ export default function BookingDatePage() {
   const handleDateChange = async (value: string) => {
     setSelectedDate(value);
     setGuestCount('1');
+    setShowGuestOptions(false);
     await checkExistingBooking(value, userId);
   };
 
   const handleContinue = () => {
-    setMessage('');
-
     if (!selectedDate) {
-      setMessage('Seleziona un giorno per continuare.');
+      setStatusMessage('Seleziona un giorno per continuare.');
       return;
     }
 
     if (isOfficeFull) {
-      setMessage('Sede al completo');
+      setStatusMessage('Sede al completo');
       return;
     }
 
     if (hasExistingBooking) {
-      const availableCount = availableDesksCount ?? 0;
-      setMessage(
-        `Hai già una prenotazione\nPostazioni disponibili ${availableCount} postazioni/${MAX_DESKS}`
-      );
+      setStatusMessage('Hai già una prenotazione');
       return;
     }
 
@@ -143,15 +158,25 @@ export default function BookingDatePage() {
   };
 
   const handleGuestContinue = () => {
-    setMessage('');
-
     if (!selectedDate) {
-      setMessage('Seleziona un giorno per continuare.');
+      setStatusMessage('Seleziona un giorno per continuare.');
       return;
     }
 
     if (isOfficeFull) {
-      setMessage('Sede al completo');
+      setStatusMessage('Sede al completo');
+      return;
+    }
+
+    if (maxSelectableGuests <= 0) {
+      setStatusMessage('Sede al completo');
+      return;
+    }
+
+    if (Number(guestCount) > maxSelectableGuests) {
+      setStatusMessage(
+        `Puoi selezionare al massimo ${maxSelectableGuests} ospiti per il giorno scelto.`
+      );
       return;
     }
 
@@ -188,17 +213,23 @@ export default function BookingDatePage() {
           />
         </div>
 
-        {message && (
-          <p
-            style={
-              message === 'Sede al completo'
-                ? styles.fullMessage
-                : styles.message
-            }
-          >
-            {message}
-          </p>
+        {statusMessage === 'Hai già una prenotazione' && (
+          <p style={styles.message}>{statusMessage}</p>
         )}
+
+        {availabilityMessage && (
+          <p style={styles.availabilityMessage}>{availabilityMessage}</p>
+        )}
+
+        {statusMessage === 'Sede al completo' && (
+          <p style={styles.fullMessage}>{statusMessage}</p>
+        )}
+
+        {statusMessage &&
+          statusMessage !== 'Hai già una prenotazione' &&
+          statusMessage !== 'Sede al completo' && (
+            <p style={styles.message}>{statusMessage}</p>
+          )}
 
         {!hasExistingBooking && (
           <button
@@ -214,7 +245,7 @@ export default function BookingDatePage() {
           </button>
         )}
 
-        {hasExistingBooking && (
+        {hasExistingBooking && !isOfficeFull && (
           <>
             {!showGuestOptions && (
               <button
@@ -233,7 +264,7 @@ export default function BookingDatePage() {
                   value={guestCount}
                   onChange={(e) => setGuestCount(e.target.value)}
                 >
-                  {Array.from({ length: 10 }, (_, i) => (
+                  {Array.from({ length: maxSelectableGuests }, (_, i) => (
                     <option key={i + 1} value={String(i + 1)}>
                       {i + 1}
                     </option>
@@ -241,13 +272,9 @@ export default function BookingDatePage() {
                 </select>
 
                 <button
-                  style={
-                    isOfficeFull
-                      ? { ...styles.primaryButton, ...styles.disabledButton }
-                      : styles.primaryButton
-                  }
+                  style={styles.primaryButton}
                   onClick={handleGuestContinue}
-                  disabled={isOfficeFull}
+                  disabled={maxSelectableGuests === 0}
                 >
                   Continua con ospiti
                 </button>
@@ -297,13 +324,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(20px, 5.5vw, 24px)',
     lineHeight: 1.3,
     wordBreak: 'break-word',
-  },
-
-  subtitle: {
-    margin: 0,
-    textAlign: 'center',
-    fontSize: 'clamp(17px, 4.8vw, 20px)',
-    lineHeight: 1.3,
   },
 
   formGroup: {
@@ -411,14 +431,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
   },
 
+  availabilityMessage: {
+    margin: 0,
+    textAlign: 'center',
+    fontSize: 'clamp(13px, 3.8vw, 14px)',
+    color: '#000000',
+    lineHeight: 1.4,
+    wordBreak: 'break-word',
+  },
+
   message: {
     margin: 0,
     textAlign: 'center',
     fontSize: 'clamp(13px, 3.8vw, 14px)',
-    color: '#c62828',
-    lineHeight: 1.5,
+    color: '#000000',
+    lineHeight: 1.4,
     wordBreak: 'break-word',
-    whiteSpace: 'pre-line',
   },
 
   fullMessage: {
@@ -427,8 +455,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(13px, 3.8vw, 14px)',
     color: '#ff0000',
     fontWeight: 700,
-    lineHeight: 1.5,
+    lineHeight: 1.4,
     wordBreak: 'break-word',
-    whiteSpace: 'pre-line',
   },
 };
