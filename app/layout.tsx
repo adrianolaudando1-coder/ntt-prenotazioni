@@ -1,28 +1,16 @@
 export const metadata: Metadata = {
+  metadataBase: new URL('https://ntt-prenotazioni-alpha.vercel.app'),
   title: 'NTT Salerno - Prenotazione Postazioni',
   description: 'Applicazione interna per prenotare le postazioni di lavoro presso NTT DATA Salerno',
-
   openGraph: {
     title: 'NTT Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
-    url: 'https://ntt-prenotazioni-alpha.vercel.app/',
-    siteName: 'NTT Salerno Booking',
-    images: [
-      {
-        url: 'https://ntt-prenotazioni-alpha.vercel.app/anteprima.png', 
-        width: 1200,
-        height: 630,
-      },
-    ],
-    type: 'website',
+    images: ['/anteprima.png'],
   },
-
   twitter: {
     card: 'summary_large_image',
     title: 'NTT Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
-    images: [
-      'https://ntt-prenotazioni-alpha.vercel.app/anteprima.png', 
-    ],
+    images: ['/anteprima.png'],
   },
 };
