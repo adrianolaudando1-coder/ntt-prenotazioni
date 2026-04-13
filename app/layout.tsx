@@ -1,3 +1,9 @@
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://ntt-prenotazioni-alpha.vercel.app'),
   title: 'NTT Salerno - Prenotazione Postazioni',
@@ -5,12 +11,27 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'NTT Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
-    images: https://ntt-prenotazioni-alpha.vercel.app,
+    url: '/',
+    siteName: 'NTT Salerno Booking',
+    images: ['/anteprima.png'],
+    type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'NTT Salerno - Prenotazione Postazioni',
     description: 'Prenota la tua postazione in ufficio',
-    images: https://ntt-prenotazioni-alpha.vercel.app,
+    images: ['/anteprima.png'],
   },
 };
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="it">
+      <body className={inter.className}>{children}</body>
+    </html>
+  );
+}
