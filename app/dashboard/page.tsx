@@ -414,6 +414,10 @@ export default function DashboardPage() {
                     );
                   })}
                 </div>
+
+                <p style={styles.mainBookingsHint}>
+                  Clicca sulle card per modificare o cancellare la prenotazione
+                </p>
               </div>
             </>
           )}
@@ -816,6 +820,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: 700,
+  },
+  mainBookingsHint: {
+    margin: 0,
+    marginTop: '4px',
+    fontSize: '13px',
+    color: '#94a3b8',
+    textAlign: 'left',
   },
   guestGroupCard: {
     borderRadius: '14px',
